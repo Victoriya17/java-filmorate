@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -13,11 +13,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
-    private static final Logger log = LoggerFactory.getLogger(FilmController.class);
+
+    private static final LocalDate FIRST_FILM_DATE = LocalDate.of(1895, 12, 28);
+    private static final int MAX_DESCRIPTION_LENGTH = 200;
 
     @GetMapping
     public Collection<Film> findAllFilms() {
@@ -25,13 +28,12 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film createFilm(@RequestBody Film film) {
+    public Film createFilm(@Valid @RequestBody Film film) {
         if (film == null) {
             throw new ValidationException("Фильм не может быть null");
         }
 
-        validateName(film);
-        validateUniqueFilm(film);
+        validateUniqueFilm(film, false);
         validateDescription(film);
         validateReleaseDate(film);
         validateDuration(film);
@@ -41,36 +43,16 @@ public class FilmController {
         return film;
     }
 
-    private void validateUniqueFilm(Film film) {
-        for (Film existingFilm : films.values()) {
-
-            if (existingFilm.getId().equals(film.getId())) {
-                continue;
-            }
-
-            if (existingFilm.getName().equals(film.getName()) &&
-                    existingFilm.getReleaseDate().equals(film.getReleaseDate())) {
-                throw new DuplicatedDataException("Этот фильм уже есть в списке.");
-            }
-        }
-    }
-
-    private void validateName(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название не может быть пустым.");
-        }
-    }
-
     private void validateDescription(Film film) {
-        if (film.getDescription() == null || film.getDescription().isBlank() || film.getDescription().length() > 200) {
-            throw new ValidationException("Описание фильма не может быть больше 200 символов.");
+        if (film.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
+            throw new ValidationException("Описание фильма не может быть пустым или содержать больше 200 символов.");
         }
     }
 
     private void validateReleaseDate(Film film) {
-        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28)) ||
+        if (film.getReleaseDate().isBefore(FIRST_FILM_DATE) ||
                 film.getReleaseDate().isAfter(LocalDate.now())) {
-            throw new ValidationException("Фильм не может быть создан раньше 12 декабря 1895 года.");
+            throw new ValidationException("Дата создания не может быть раньше 12.12.1895 года или быть равна null.");
         }
     }
 
@@ -89,51 +71,51 @@ public class FilmController {
         return ++currentMaxId;
     }
 
+    private void validateUniqueFilm(Film film, boolean isUpdate) {
+        if (isUpdate) {
+            Film existingFilm = films.get(film.getId());
+            if (existingFilm != null &&
+                    existingFilm.getName().equals(film.getName()) &&
+                    existingFilm.getReleaseDate().equals(film.getReleaseDate())) {
+                return;
+            }
+        }
+
+        for (Film existing : films.values()) {
+            if (isUpdate && existing.getId().equals(film.getId())) {
+                continue;
+            }
+
+            if (existing.getName().equals(film.getName()) &&
+                    existing.getReleaseDate().equals(film.getReleaseDate())) {
+                throw new DuplicatedDataException("Этот фильм уже есть в списке.");
+            }
+        }
+    }
+
     @PutMapping
-    public Film updateFilm(@RequestBody Film newFilm) {
+    public Film updateFilm(@Valid @RequestBody Film newFilm) {
         log.info("Начало обновления фильма. ID: {}", newFilm.getId());
 
         if (newFilm.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
 
-        if (films.containsKey(newFilm.getId())) {
-            Film oldFilm = films.get(newFilm.getId());
-            updateNameIfProvided(newFilm, oldFilm);
-            updateDescriptionIfValid(newFilm, oldFilm);
-            updateReleaseDateIfValid(newFilm, oldFilm);
-            updateDurationIfValid(newFilm, oldFilm);
-            validateUniqueFilm(newFilm);
-
-            return oldFilm;
+        Film oldFilm = films.get(newFilm.getId());
+        if (oldFilm == null) {
+            throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
         }
-        throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
-    }
 
-    private void updateNameIfProvided(Film newFilm, Film oldFilm) {
-        if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
-            oldFilm.setName(newFilm.getName());
-        }
-    }
+        validateDescription(newFilm);
+        validateReleaseDate(newFilm);
+        validateDuration(newFilm);
+        validateUniqueFilm(newFilm, true);
 
-    private void updateDescriptionIfValid(Film newFilm, Film oldFilm) {
-        if (newFilm.getDescription() != null && !newFilm.getDescription().isBlank() &&
-                newFilm.getDescription().length() <= 200) {
-            oldFilm.setDescription(newFilm.getDescription());
-        }
-    }
+        oldFilm.setName(newFilm.getName());
+        oldFilm.setDescription(newFilm.getDescription());
+        oldFilm.setReleaseDate(newFilm.getReleaseDate());
+        oldFilm.setDuration(newFilm.getDuration());
 
-    private void updateReleaseDateIfValid(Film newFilm, Film oldFilm) {
-        if (newFilm.getReleaseDate() != null &&
-                newFilm.getReleaseDate().isAfter(LocalDate.of(1895, 12, 28)) &&
-                newFilm.getReleaseDate().isBefore(LocalDate.now())) {
-            oldFilm.setReleaseDate(newFilm.getReleaseDate());
-        }
-    }
-
-    private void updateDurationIfValid(Film newFilm, Film oldFilm) {
-        if (newFilm.getDuration() > 0) {
-            oldFilm.setDuration(newFilm.getDuration());
-        }
+        return oldFilm;
     }
 }

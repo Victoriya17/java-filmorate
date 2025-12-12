@@ -55,28 +55,6 @@ class UserControllerTest {
         assertEquals(0, allUsers.size(), "Размер коллекции должен быть 0");
     }
 
-    private void assertEmailThrowsValidationException(String email) {
-        user.setLogin("testlogin");
-        user.setEmail(email);
-        user.setBirthday(LocalDate.of(1994, 5, 17));
-        assertThrows(ValidationException.class, () -> userController.createUser(user));
-    }
-
-    @Test
-    void testEmailWithoutAt() {
-        assertEmailThrowsValidationException("testmail.com");
-    }
-
-    @Test
-    void testEmailNull() {
-        assertEmailThrowsValidationException(null);
-    }
-
-    @Test
-    void testEmailIsBlank() {
-        assertEmailThrowsValidationException("");
-    }
-
     @Test
     void testDuplicatedEmail() {
         String testEmail = "test@mail.ru";
@@ -88,35 +66,23 @@ class UserControllerTest {
         User user2 = new User();
         user2.setEmail(testEmail);
 
-        assertThrows(DuplicatedDataException.class, () -> {
-            userController.createUser(user2);
-        });
+        DuplicatedDataException e = assertThrows(DuplicatedDataException.class, () -> userController.createUser(user2));
+        assertEquals("Этот имейл уже используется.", e.getMessage());
+
 
         assertEquals(1, userController.findAllUsers().stream()
                 .filter(u -> testEmail.equals(u.getEmail()))
                 .count(), "");
     }
 
-    private void assertLoginThrowsValidationException(String login) {
-        user.setLogin(login);
-        user.setEmail("test@email.ru");
-        user.setBirthday(LocalDate.of(1994, 5, 17));
-        assertThrows(ValidationException.class, () -> userController.createUser(user));
-    }
-
     @Test
     void testLoginWithSpace() {
-        assertLoginThrowsValidationException("test login");
-    }
+        user.setLogin("test login");
+        user.setEmail("test@email.ru");
+        user.setBirthday(LocalDate.of(1994, 5, 17));
 
-    @Test
-    void testLoginNull() {
-        assertLoginThrowsValidationException(null);
-    }
-
-    @Test
-    void testLoginIsBlank() {
-        assertLoginThrowsValidationException("");
+        ValidationException e = assertThrows(ValidationException.class, () -> userController.createUser(user));
+        assertEquals("Логин должен быть указан без пробелов и не должен быть пустым.", e.getMessage());
     }
 
     @Test
@@ -155,22 +121,14 @@ class UserControllerTest {
         assertEquals("JhonnyDepp", result.getName(), "Имя не должно изменяться, если оно уже задано");
     }
 
-    private void assertBirthdayThrowsValidationException(LocalDate date) {
-        user.setLogin("login");
-        user.setEmail("test@email.ru");
-        user.setBirthday(date);
-
-        assertThrows(ValidationException.class, () -> userController.createUser(user));
-    }
-
-    @Test
-    void testBirthdayIsNull() {
-        assertBirthdayThrowsValidationException(null);
-    }
-
     @Test
     void testBirthdayNotInFuture() {
-        assertBirthdayThrowsValidationException(LocalDate.of(2030, 5, 17));
+        user.setLogin("login");
+        user.setEmail("test@email.ru");
+        user.setBirthday(LocalDate.of(2030, 5, 17));
+
+        ValidationException e = assertThrows(ValidationException.class, () -> userController.createUser(user));
+        assertEquals("Дата рождения не может быть равна нулю или быть в будущем.", e.getMessage());
     }
 
     @Test
@@ -179,7 +137,9 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setLogin("Depp");
 
-        assertEquals(LocalDate.of(1994, 5, 17), user.getBirthday(),
+        User createdUser = userController.createUser(user);
+
+        assertEquals(LocalDate.of(1994, 5, 17), createdUser.getBirthday(),
                 "День Рождения должен быть в прошлом");
     }
 
@@ -213,53 +173,15 @@ class UserControllerTest {
         assertEquals(LocalDate.of(1995, 5, 15), result.getBirthday());
     }
 
-    private void assertEmailUpdateThrowsValidationException(String email) {
+    @Test
+    void testUpdateLoginIsValid() {
         beforeUpdateUserTest();
-        updatedUser.setLogin("testlogin");
-        updatedUser.setEmail(email);
-        assertThrows(ValidationException.class, () -> userController.updateUser(user));
-    }
+        updatedUser.setLogin("   ");
+        updatedUser.setEmail("test@email.ru");
+        updatedUser.setBirthday(LocalDate.of(1994, 5, 17));
 
-    @Test
-    void shouldRejectEmailNull() {
-        assertEmailUpdateThrowsValidationException(null);
-    }
-
-    @Test
-    void shouldKeepOldEmailIfNewIsBlank() {
-        assertEmailUpdateThrowsValidationException("");
-    }
-
-    @Test
-    void shouldRejectEmailWithNoAt() {
-        assertEmailUpdateThrowsValidationException("invalid-email.com");
-    }
-
-    private void assertLoginThrowsValidationExceptionIfUpdate(String login) {
-        user.setLogin(login);
-        user.setEmail("test@email.ru");
-        user.setBirthday(LocalDate.of(1994, 5, 17));
-        assertThrows(ValidationException.class, () -> userController.updateUser(user));
-    }
-
-
-    @Test
-    void shouldRejectLoginNull() {
-        beforeUpdateUserTest();
-        assertLoginThrowsValidationExceptionIfUpdate(null);
-    }
-
-    @Test
-    void shouldKeepOldLoginIfNewIsBlank() {
-        beforeUpdateUserTest();
-        assertLoginThrowsValidationExceptionIfUpdate("");
-    }
-
-
-    @Test
-    void shouldRejectLoginIsValid() {
-        beforeUpdateUserTest();
-        assertLoginThrowsValidationExceptionIfUpdate("   ");
+        ValidationException e = assertThrows(ValidationException.class, () -> userController.updateUser(updatedUser));
+        assertEquals("Логин должен быть указан без пробелов и не должен быть пустым.", e.getMessage());
     }
 
     @Test
@@ -296,39 +218,14 @@ class UserControllerTest {
         updatedUser2.setLogin("newlogin");
         updatedUser2.setBirthday(LocalDate.of(2030, 1, 1));
 
-        User result = userController.updateUser(updatedUser2);
-        assertEquals(LocalDate.of(1990, 5, 15), result.getBirthday());
-    }
-
-    @Test
-    void shouldNotUpdateBirthdayNull() {
-        user.setId(1L);
-        user.setEmail("user1@example.com");
-        user.setLogin("user1");
-        user.setName("User One");
-        user.setBirthday(LocalDate.of(1990, 5, 15));
-        userController.createUser(user);
-        User updatedUser2 = new User();
-        updatedUser2.setId(user.getId());
-        updatedUser2.setEmail("new@email.com");
-        updatedUser2.setLogin("newlogin");
-        updatedUser2.setBirthday(null);
-
-        User result = userController.updateUser(updatedUser2);
-        assertEquals(LocalDate.of(1990, 5, 15), result.getBirthday());
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> userController.updateUser(updatedUser2));
+        assertEquals("Дата рождения не может быть равна нулю или быть в будущем.", exception.getMessage());
     }
 
     @Test
     void shouldThrowValidationExceptionWhenUserIsNull() {
-        assertThrows(ValidationException.class, () -> {
-            userController.createUser(null);
-        });
-    }
-
-    @Test
-    void shouldThrowValidationExceptionWhenAllFieldsNull() {
-        assertThrows(ValidationException.class, () -> {
-            userController.createUser(user);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> userController.createUser(null));
+        assertEquals("Пользователь не может быть null", exception.getMessage());
     }
 }

@@ -82,50 +82,18 @@ class FilmControllerTest {
     }
 
     @Test
-    void testCreateNameNull() {
-        film.setName(null);
-        film.setDescription("Film about confectioner");
-        film.setReleaseDate(LocalDate.of(2000, 12, 22));
-        film.setDuration(121);
-
-        assertThrows(ValidationException.class, () -> filmController.createFilm(film));
-    }
-
-    @Test
-    void testCreateNameIsBlank() {
-        film.setName("");
-        film.setDescription("Film about confectioner");
-        film.setReleaseDate(LocalDate.of(2000, 12, 22));
-        film.setDuration(121);
-
-        assertThrows(ValidationException.class, () -> filmController.createFilm(film));
-    }
-
-    private void assertDescriptionThrowsValidationException(String description) {
+    void testDescriptionOverTwoHundredSymbols() {
         film.setName("Chocolate");
-        film.setDescription(description);
-        film.setReleaseDate(LocalDate.of(2000, 12, 22));
-        film.setDuration(121);
-        assertThrows(ValidationException.class, () -> filmController.createFilm(film));
-    }
-
-    @Test
-    void testDescriptionLessTwoHundredSymbols() {
-        assertDescriptionThrowsValidationException("Chocolat is about a mysterious woman, Vianne Rocher, and her " +
+        film.setDescription("Chocolat is about a mysterious woman, Vianne Rocher, and her " +
                 "daughter who open a magical chocolate shop in a small, rigid French village during Lent, bringing " +
                 "temptation and challenging traditions with her unique, desire-fulfilling chocolates, especially as " +
                 "the conservative mayor opposes her, until a group of river gypsies and Vianne's own past bring " +
                 "about change and self-discovery, with themes of indulgence, tradition, love, and finding oneself.");
-    }
+        film.setReleaseDate(LocalDate.of(2000, 12, 22));
+        film.setDuration(121);
 
-    @Test
-    void testDescriptionNull() {
-       assertDescriptionThrowsValidationException(null);
-    }
-
-    @Test
-    void testDescriptionIsBlank() {
-        assertDescriptionThrowsValidationException("");
+        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        assertEquals("Описание фильма не может быть пустым или содержать больше 200 символов.", e.getMessage());
     }
 
     private void assertReleaseDateThrowsValidationException(LocalDate date) {
@@ -134,12 +102,8 @@ class FilmControllerTest {
         film.setReleaseDate(date);
         film.setDuration(121);
 
-        assertThrows(ValidationException.class, () -> filmController.createFilm(film));
-    }
-
-    @Test
-    void testCreateWithReleaseDateNull() {
-        assertReleaseDateThrowsValidationException(null);
+        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        assertEquals("Дата создания не может быть раньше 12.12.1895 года или быть равна null.", e.getMessage());
     }
 
     @Test
@@ -159,7 +123,8 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 12, 22));
         film.setDuration(-121);
 
-        assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        assertEquals("Продолжительность фильма должна быть положительным числом.", e.getMessage());
     }
 
     private void beforeUpdateFilmTest() {
@@ -178,7 +143,7 @@ class FilmControllerTest {
     }
 
     @Test
-    void shouldUpdateAllFieldsSuccessfully() {
+    void testUpdateAllFieldsSuccessfully() {
         beforeUpdateFilmTest();
         updatedFilm.setDescription("Film about friendship with two not similar people");
         updatedFilm.setDuration(115);
@@ -193,96 +158,54 @@ class FilmControllerTest {
     }
 
     @Test
-    void shouldRejectNameNull() {
+    void testUpdateDescriptionOverTwoHundredSymbols() {
         beforeUpdateFilmTest();
-        updatedFilm.setName(null);
-        updatedFilm.setDescription("Film about friendship.");
-        updatedFilm.setDuration(115);
-        updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
-
-        assertThrows(ValidationException.class, () -> filmController.updateFilm(film));
-    }
-
-    @Test
-    void shouldRejectNameIsBlank() {
-        beforeUpdateFilmTest();
-        updatedFilm.setName("");
-        updatedFilm.setDescription("Film about friendship.");
-        updatedFilm.setDuration(115);
-        updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
-
-        assertThrows(ValidationException.class, () -> filmController.updateFilm(film));
-    }
-
-    private void assertUpdateDescriptionThrowsValidationException(String description) {
-        beforeUpdateFilmTest();
-        updatedFilm.setDescription(description);
-        updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
-        updatedFilm.setDuration(115);
-        assertThrows(ValidationException.class, () -> filmController.updateFilm(film));
-    }
-
-    @Test
-    void shouldRejectDescriptionNull() {
-    assertUpdateDescriptionThrowsValidationException(null);
-    }
-
-    @Test
-    void shouldRejectDescriptionIsBlank() {
-       assertUpdateDescriptionThrowsValidationException("");
-    }
-
-    @Test
-    void shouldRejectDescriptionMoreTwoHundred() {
-        assertUpdateDescriptionThrowsValidationException("The French film \"The Intouchables,\" is a heartwarming " +
+        updatedFilm.setDescription("The French film \"The Intouchables,\" is a heartwarming " +
                 "comedy-drama about an unlikely friendship between a wealthy, paralyzed aristocrat named Philippe " +
                 "and his new caregiver, Driss, a young man from the projects with a criminal record, who applies for " +
                 "the job just to get rejected, but ends up bringing joy and new perspectives to both their lives.");
+        updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
+        updatedFilm.setDuration(115);
+
+        ValidationException e = assertThrows(ValidationException.class, () -> filmController.updateFilm(updatedFilm));
+        assertEquals("Описание фильма не может быть пустым или содержать больше 200 символов.", e.getMessage());
     }
 
-    @Test
-    void shouldRejectReleaseDateInFuture() {
+    private void assertUpdateReleaseDateThrowsValidationException(LocalDate date) {
         beforeUpdateFilmTest();
         updatedFilm.setDescription("Film about friendship with two not similar people");
+        updatedFilm.setReleaseDate(date);
         updatedFilm.setDuration(115);
-        updatedFilm.setReleaseDate(LocalDate.of(2030, 5, 15));
 
-        assertEquals(LocalDate.of(2012, 4, 26),
-                filmController.updateFilm(updatedFilm).getReleaseDate());
+        ValidationException e = assertThrows(ValidationException.class, () -> filmController.updateFilm(updatedFilm));
+        assertEquals("Дата создания не может быть раньше 12.12.1895 года или быть равна null.", e.getMessage());
     }
 
     @Test
-    void shouldRejectReleaseDateNull() {
-        beforeUpdateFilmTest();
-        updatedFilm.setDescription("Film about friendship with two not similar people");
-        updatedFilm.setDuration(115);
-        updatedFilm.setReleaseDate(null);
-
-        assertEquals(LocalDate.of(2012, 4, 26),
-                filmController.updateFilm(updatedFilm).getReleaseDate());
+    void testUpdateReleaseDateInFuture() {
+        assertUpdateReleaseDateThrowsValidationException(LocalDate.of(2030, 5, 15));
     }
 
     @Test
-    void shouldRejectReleaseDateInPast() {
-        beforeUpdateFilmTest();
-        updatedFilm.setDescription("Film about friendship with two not similar people");
-        updatedFilm.setDuration(115);
-        updatedFilm.setReleaseDate(LocalDate.of(1890, 5, 15));
-
-        Film result = filmController.updateFilm(updatedFilm);
-
-        assertEquals(LocalDate.of(2012, 4, 26), result.getReleaseDate());
+    void testUpdateReleaseDateInPast() {
+        assertUpdateReleaseDateThrowsValidationException(LocalDate.of(1890, 5, 15));
     }
 
     @Test
-    void shouldRejectDurationInvalid() {
+    void testUpdateDurationInvalid() {
         beforeUpdateFilmTest();
         updatedFilm.setDescription("Film about friendship with two not similar people");
         updatedFilm.setDuration(-114);
         updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
 
-        Film result = filmController.updateFilm(updatedFilm);
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> filmController.updateFilm(updatedFilm));
+        assertEquals("Продолжительность фильма должна быть положительным числом.", exception.getMessage());
+    }
 
-        assertEquals(114, result.getDuration());
+    @Test
+    void shouldThrowValidationExceptionWhenFilmIsNull() {
+        ValidationException exception = assertThrows(ValidationException.class, () -> filmController.createFilm(null));
+        assertEquals("Фильм не может быть null", exception.getMessage());
     }
 }
