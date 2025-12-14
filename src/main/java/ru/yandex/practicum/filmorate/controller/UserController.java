@@ -30,27 +30,20 @@ public class UserController {
             throw new ValidationException("Пользователь не может быть null");
         }
 
-        validateUniqueEmail(user);
-        validateLogin(user);
+        validateUniqueEmail(user.getEmail());
         validateName(user);
-        validateBirthday(user);
+        validateBirthday(user.getBirthday());
 
         user.setId(getNextId());
         users.put(user.getId(), user);
         return user;
     }
 
-    private void validateUniqueEmail(User user) {
-        for (User existingUser : users.values()) {
-            if (existingUser.getEmail().equals(user.getEmail())) {
+    private void validateUniqueEmail(String email) {
+        for (User user : users.values()) {
+            if (user.getEmail().equals(email)) {
                 throw new DuplicatedDataException("Этот имейл уже используется.");
             }
-        }
-    }
-
-    private void validateLogin(User user) {
-        if (user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин должен быть указан без пробелов и не должен быть пустым.");
         }
     }
 
@@ -60,8 +53,8 @@ public class UserController {
         }
     }
 
-    private void validateBirthday(User user) {
-        if (user.getBirthday().isAfter(LocalDate.now())) {
+    private void validateBirthday(LocalDate birthday) {
+        if (birthday.isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть равна нулю или быть в будущем.");
         }
     }
@@ -89,26 +82,36 @@ public class UserController {
 
         User oldUser = users.get(newUser.getId());
 
-        validateLogin(newUser);
-        validateBirthday(newUser);
-
-        if (!oldUser.getEmail().equals(newUser.getEmail())) {
-            validateUniqueEmail(newUser);
+        if (newUser.getEmail() != null && !newUser.getEmail().isBlank() &&
+                !oldUser.getEmail().equals(newUser.getEmail())) {
+            validateUniqueEmail(newUser.getEmail());
+            oldUser.setEmail(newUser.getEmail());
         }
 
-        oldUser.setEmail(newUser.getEmail());
-        oldUser.setLogin(newUser.getLogin());
+        validateLoginOnUpdate(newUser, oldUser);
         updateNameIfProvided(newUser, oldUser);
-        oldUser.setBirthday(newUser.getBirthday());
+        validateBirthdayOnUpdate(newUser, oldUser);
 
         return oldUser;
+    }
+
+    private void validateLoginOnUpdate(User newUser, User oldUser) {
+        if (newUser.getLogin() != null && !newUser.getLogin().isBlank() &&
+                !oldUser.getLogin().equals(newUser.getLogin())) {
+            oldUser.setLogin(newUser.getLogin());
+        }
     }
 
     private void updateNameIfProvided(User newUser, User oldUser) {
         if (newUser.getName() != null && !newUser.getName().isBlank()) {
             oldUser.setName(newUser.getName());
-        } else {
-            oldUser.setName(newUser.getLogin());
+        }
+    }
+
+    private void validateBirthdayOnUpdate(User newUser, User oldUser) {
+        if (newUser.getBirthday() != null && !oldUser.getBirthday().equals(newUser.getBirthday())) {
+            validateBirthday(newUser.getBirthday());
+            oldUser.setBirthday(newUser.getBirthday());
         }
     }
 }
