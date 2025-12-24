@@ -23,9 +23,6 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     public User createUser(User user) {
-        if (user == null) {
-            throw new ValidationException("Пользователь не может быть null");
-        }
         if (!user.getEmail().contains("@")) { //если оставить @Email не проходил тест в Postman
             throw new ValidationException("Имейл должен содержать @.");
         }

@@ -203,11 +203,4 @@ class InMemoryUserStorageTest {
                 () -> inMemoryUserStorage.updateUser(updatedUser2));
         assertEquals("Дата рождения не может быть равна нулю или быть в будущем.", exception.getMessage());
     }
-
-    @Test
-    void shouldThrowValidationExceptionWhenUserIsNull() {
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> inMemoryUserStorage.createUser(null));
-        assertEquals("Пользователь не может быть null", exception.getMessage());
-    }
 }

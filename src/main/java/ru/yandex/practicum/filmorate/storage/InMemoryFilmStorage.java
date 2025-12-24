@@ -25,9 +25,6 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     public Film createFilm(Film film) {
-        if (film == null) {
-            throw new ValidationException("Фильм не может быть null");
-        }
         if (film.getName() == null || film.getName().isBlank()) { // если оставить @NotBlank не проходил тест в Postman
             throw new ValidationException("Название фильма не может быть пустым");
         }
@@ -136,9 +133,10 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     public Film findFilmById(Long id) {
-        if (films.get(id) == null) {
+        Film film = films.get(id);
+        if (film == null) {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
         }
-        return films.get(id);
+        return film;
     }
 }

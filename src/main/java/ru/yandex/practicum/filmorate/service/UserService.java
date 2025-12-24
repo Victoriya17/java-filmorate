@@ -18,11 +18,29 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserStorage userStorage;
 
-    public void addFriend(Long id, Long friendId) {
-        validateId(id, friendId);
+    public Collection<User> findAllUsers() {
+        log.debug("Получение списка пользователей");
+        return userStorage.findAllUsers();
+    }
 
-        User user = userStorage.findUserById(id);
-        User friend = userStorage.findUserById(friendId);
+    public User createUser(User user) {
+        log.debug("Создание нового пользователя {}", user.getName());
+        return userStorage.createUser(user);
+    }
+
+    public User updateUser(User newUser) {
+        log.debug("Обновление пользователя c ID{}", newUser.getId());
+        return userStorage.updateUser(newUser);
+    }
+
+    public User findUserById(Long id) {
+        log.debug("Поиск пользователя c ID{}", id);
+        return userStorage.findUserById(id);
+    }
+
+    public void addFriend(Long id, Long friendId) {
+        User user = findUserById(id);
+        User friend = findUserById(friendId);
 
         if (user.getFriends().contains(friendId) && friend.getFriends().contains(id)) {
             log.warn("Пользователи {} и {} уже в друзьях друг у друга", id, friendId);
@@ -35,10 +53,8 @@ public class UserService {
     }
 
     public void removeFriend(Long id, Long friendId) {
-        validateId(id, friendId);
-
-        User user = userStorage.findUserById(id);
-        User friend = userStorage.findUserById(friendId);
+        User user = findUserById(id);
+        User friend = findUserById(friendId);
 
         if (user.getFriends().remove(friendId) && friend.getFriends().remove(id)) {
             log.info("Успешно удалена дружба между {} и {}", id, friendId);
@@ -47,20 +63,11 @@ public class UserService {
         }
     }
 
-    private void validateId(Long id, Long friendId) {
-        if (id == null || friendId == null) {
-            throw new ValidationException("Id пользователя должен быть указан.");
-        }
-        if (id.equals(friendId)) {
-            throw new ValidationException("Id пользователей не могут совпадать.");
-        }
-    }
-
     public Collection<User> getFriends(Long id) {
         if (id == null) {
             throw new ValidationException("Id пользователя должен быть указан.");
         }
-        User user = userStorage.findUserById(id);
+        User user = findUserById(id);
         log.debug("Получение списка друзей пользователя " + user.getName());
         Set<Long> friendsIds = user.getFriends();
 
@@ -71,7 +78,7 @@ public class UserService {
 
         ArrayList<User> friendsList = new ArrayList<>();
         for (Long friendId : friendsIds) {
-            friendsList.add(userStorage.findUserById(friendId));
+            friendsList.add(findUserById(friendId));
         }
 
         log.trace("Список друзей пользователя " + user.getName());
@@ -86,7 +93,6 @@ public class UserService {
         Collection<User> commonFriends = userFriends.stream()
                 .filter(otherUserFriends::contains)
                 .collect(Collectors.toList());
-
 
         log.trace("Найдено {} общих друзей для пользователей ID={} и ID={}",
                 commonFriends.size(), id, otherId);

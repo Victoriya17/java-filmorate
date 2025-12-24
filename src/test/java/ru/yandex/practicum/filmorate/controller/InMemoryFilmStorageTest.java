@@ -203,11 +203,4 @@ class InMemoryFilmStorageTest {
                 () -> inMemoryFilmStorage.updateFilm(updatedFilm));
         assertEquals("Продолжительность фильма должна быть положительным числом.", exception.getMessage());
     }
-
-    @Test
-    void shouldThrowValidationExceptionWhenFilmIsNull() {
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> inMemoryFilmStorage.createFilm(null));
-        assertEquals("Фильм не может быть null", exception.getMessage());
-    }
 }
