@@ -3,9 +3,9 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FilmService {
     private final FilmStorage filmStorage;
-    private final UserStorage userStorage;
+    private final UserService userService;
 
     public Collection<Film> findAllFilms() {
         log.debug("Получение списка фильмов");
@@ -35,12 +35,13 @@ public class FilmService {
 
     public Film findFilmById(Long id) {
         log.debug("Поиск фильма по ID {}", id);
-        return filmStorage.findFilmById(id);
+        return filmStorage.findFilmById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
     }
 
     public void addLike(Long id, Long userId) {
-        userStorage.findUserById(userId);
-        Film film = filmStorage.findFilmById(id);
+        userService.findUserById(userId);
+        Film film = findFilmById(id);
 
         film.getLikes().add(userId);
 
@@ -48,8 +49,8 @@ public class FilmService {
     }
 
     public void removeLike(Long filmId, Long userId) {
-        userStorage.findUserById(userId);
-        Film film = filmStorage.findFilmById(filmId);
+        userService.findUserById(userId);
+        Film film = findFilmById(filmId);
 
         film.getLikes().remove(userId);
 
@@ -59,7 +60,7 @@ public class FilmService {
     public Collection<Film> getPopularFilms(int count) {
         log.debug("Получаем список из первых {} фильмов по количеству лайков", count);
 
-        return filmStorage.findAllFilms().stream()
+        return findAllFilms().stream()
                 .sorted(Comparator.comparing(
                         film -> film.getLikes().size(),
                         Comparator.reverseOrder()

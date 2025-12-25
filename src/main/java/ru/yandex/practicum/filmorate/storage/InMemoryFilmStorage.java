@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -132,11 +133,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         }
     }
 
-    public Film findFilmById(Long id) {
-        Film film = films.get(id);
-        if (film == null) {
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
-        return film;
+    public Optional<Film> findFilmById(Long id) {
+        return Optional.ofNullable(films.get(id));
     }
 }
