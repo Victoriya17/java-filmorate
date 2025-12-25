@@ -5,22 +5,23 @@ import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class UserControllerTest {
+class InMemoryUserStorageTest {
     private User user;
     private User existingUser;
     private User updatedUser;
-    private UserController userController;
+    private InMemoryUserStorage inMemoryUserStorage;
 
     @BeforeEach
     void beforeEach() {
         user = new User();
-        userController = new UserController();
+        inMemoryUserStorage = new InMemoryUserStorage();
     }
 
     @Test
@@ -36,11 +37,11 @@ class UserControllerTest {
         user2.setName("User Two");
         user2.setBirthday(LocalDate.of(1995, 8, 20));
 
-        userController.createUser(user);
-        userController.createUser(user2);
+        inMemoryUserStorage.createUser(user);
+        inMemoryUserStorage.createUser(user2);
 
 
-        Collection<User> allUsers = userController.findAllUsers();
+        Collection<User> allUsers = inMemoryUserStorage.findAllUsers();
 
         assertNotNull(allUsers, "Коллекция не должна быть null");
         assertEquals(2, allUsers.size(), "Должно вернуться 2 пользователя");
@@ -48,7 +49,7 @@ class UserControllerTest {
 
     @Test
     void shouldReturnEmptyCollectionWhenNoUsers() {
-        Collection<User> allUsers = userController.findAllUsers();
+        Collection<User> allUsers = inMemoryUserStorage.findAllUsers();
 
         assertNotNull(allUsers, "Коллекция не должна быть null при пустом хранилище");
         assertTrue(allUsers.isEmpty(), "При отсутствии пользователей коллекция должна быть пустой");
@@ -61,16 +62,17 @@ class UserControllerTest {
         user.setEmail(testEmail);
         user.setLogin("testlogin");
         user.setBirthday(LocalDate.of(1994, 5, 17));
-        userController.createUser(user);
+        inMemoryUserStorage.createUser(user);
 
         User user2 = new User();
         user2.setEmail(testEmail);
 
-        DuplicatedDataException e = assertThrows(DuplicatedDataException.class, () -> userController.createUser(user2));
+        DuplicatedDataException e = assertThrows(DuplicatedDataException.class,
+                () -> inMemoryUserStorage.createUser(user2));
         assertEquals("Этот имейл уже используется.", e.getMessage());
 
 
-        assertEquals(1, userController.findAllUsers().stream()
+        assertEquals(1, inMemoryUserStorage.findAllUsers().stream()
                 .filter(u -> testEmail.equals(u.getEmail()))
                 .count(), "");
     }
@@ -82,7 +84,7 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setBirthday(LocalDate.of(1994, 5, 17));
 
-        User result = userController.createUser(user);
+        User result = inMemoryUserStorage.createUser(user);
 
         assertEquals("JhonnyDepp", result.getName(), "Имя должно быть равным логину, если name = null");
     }
@@ -94,7 +96,7 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setBirthday(LocalDate.of(1994, 5, 17));
 
-        User result = userController.createUser(user);
+        User result = inMemoryUserStorage.createUser(user);
 
         assertEquals("JhonnyDepp", result.getName(), "Имя должно быть равным логину, если name пуст");
     }
@@ -106,7 +108,7 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setBirthday(LocalDate.of(1994, 5, 17));
 
-        User result = userController.createUser(user);
+        User result = inMemoryUserStorage.createUser(user);
 
         assertEquals("JhonnyDepp", result.getName(), "Имя не должно изменяться, если оно уже задано");
     }
@@ -117,7 +119,7 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setBirthday(LocalDate.of(2030, 5, 17));
 
-        ValidationException e = assertThrows(ValidationException.class, () -> userController.createUser(user));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryUserStorage.createUser(user));
         assertEquals("Дата рождения не может быть равна нулю или быть в будущем.", e.getMessage());
     }
 
@@ -127,7 +129,7 @@ class UserControllerTest {
         user.setEmail("test@email.ru");
         user.setLogin("Depp");
 
-        User createdUser = userController.createUser(user);
+        User createdUser = inMemoryUserStorage.createUser(user);
 
         assertEquals(LocalDate.of(1994, 5, 17), createdUser.getBirthday(),
                 "День Рождения должен быть в прошлом");
@@ -141,7 +143,7 @@ class UserControllerTest {
         existingUser.setName("Old Name");
         existingUser.setBirthday(LocalDate.of(1990, 1, 1));
 
-        userController.createUser(existingUser);
+        inMemoryUserStorage.createUser(existingUser);
 
         updatedUser = new User();
         updatedUser.setId(existingUser.getId());
@@ -155,7 +157,7 @@ class UserControllerTest {
         updatedUser.setLogin("newlogin");
         updatedUser.setName("New Name");
 
-        User result = userController.updateUser(updatedUser);
+        User result = inMemoryUserStorage.updateUser(updatedUser);
 
         assertEquals("new@email.com", result.getEmail());
         assertEquals("newlogin", result.getLogin());
@@ -170,7 +172,7 @@ class UserControllerTest {
         updatedUser.setName(null);
         updatedUser.setLogin("newlogin");
 
-        assertEquals("Old Name", userController.updateUser(updatedUser).getName());
+        assertEquals("Old Name", inMemoryUserStorage.updateUser(updatedUser).getName());
     }
 
     @Test
@@ -180,7 +182,7 @@ class UserControllerTest {
         updatedUser.setName("");
         updatedUser.setLogin("newlogin");
 
-        assertEquals("Old Name", userController.updateUser(updatedUser).getName());
+        assertEquals("Old Name", inMemoryUserStorage.updateUser(updatedUser).getName());
     }
 
     @Test
@@ -190,7 +192,7 @@ class UserControllerTest {
         user.setLogin("user1");
         user.setName("User One");
         user.setBirthday(LocalDate.of(1990, 5, 15));
-        userController.createUser(user);
+        inMemoryUserStorage.createUser(user);
         User updatedUser2 = new User();
         updatedUser2.setId(user.getId());
         updatedUser2.setEmail("new@email.com");
@@ -198,13 +200,7 @@ class UserControllerTest {
         updatedUser2.setBirthday(LocalDate.of(2030, 1, 1));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> userController.updateUser(updatedUser2));
+                () -> inMemoryUserStorage.updateUser(updatedUser2));
         assertEquals("Дата рождения не может быть равна нулю или быть в будущем.", exception.getMessage());
-    }
-
-    @Test
-    void shouldThrowValidationExceptionWhenUserIsNull() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> userController.createUser(null));
-        assertEquals("Пользователь не может быть null", exception.getMessage());
     }
 }

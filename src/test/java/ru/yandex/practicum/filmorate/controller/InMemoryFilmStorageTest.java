@@ -5,22 +5,23 @@ import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FilmControllerTest {
+class InMemoryFilmStorageTest {
     private Film film;
     private Film existingFilm;
     private Film updatedFilm;
-    private FilmController filmController;
+    private InMemoryFilmStorage inMemoryFilmStorage;
 
     @BeforeEach
     void beforeEach() {
         film = new Film();
-        filmController = new FilmController();
+        inMemoryFilmStorage = new InMemoryFilmStorage();
     }
 
     @Test
@@ -36,11 +37,11 @@ class FilmControllerTest {
         film2.setReleaseDate(LocalDate.of(2012, 4, 26));
         film2.setDuration(114);
 
-        filmController.createFilm(film);
-        filmController.createFilm(film2);
+        inMemoryFilmStorage.createFilm(film);
+        inMemoryFilmStorage.createFilm(film2);
 
 
-        Collection<Film> allFilms = filmController.findAllFilms();
+        Collection<Film> allFilms = inMemoryFilmStorage.findAllFilms();
 
         assertNotNull(allFilms, "Коллекция не должна быть null");
         assertEquals(2, allFilms.size(), "Должно вернуться 2 фильма");
@@ -48,7 +49,7 @@ class FilmControllerTest {
 
     @Test
     void shouldReturnEmptyCollectionWhenNoFilms() {
-        Collection<Film> allFilms = filmController.findAllFilms();
+        Collection<Film> allFilms = inMemoryFilmStorage.findAllFilms();
 
         assertNotNull(allFilms, "Коллекция не должна быть null при пустом хранилище");
         assertTrue(allFilms.isEmpty(), "При отсутствии фильмов коллекция должна быть пустой");
@@ -62,7 +63,7 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 12, 22));
         film.setDuration(121);
 
-        filmController.createFilm(film);
+        inMemoryFilmStorage.createFilm(film);
 
         Film film2 = new Film();
         film2.setName("Chocolate");
@@ -71,12 +72,12 @@ class FilmControllerTest {
         film2.setDuration(100);
 
         assertThrows(DuplicatedDataException.class, () -> {
-            filmController.createFilm(film2);
+            inMemoryFilmStorage.createFilm(film2);
         });
-        assertEquals(1, filmController.findAllFilms().stream()
+        assertEquals(1, inMemoryFilmStorage.findAllFilms().stream()
                 .filter(u -> "Chocolate".equals(u.getName()))
                 .count(), "");
-        assertEquals(1, filmController.findAllFilms().stream()
+        assertEquals(1, inMemoryFilmStorage.findAllFilms().stream()
                 .filter(u -> LocalDate.of(2000, 12, 22).equals(u.getReleaseDate()))
                 .count(), "");
     }
@@ -92,7 +93,7 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 12, 22));
         film.setDuration(121);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryFilmStorage.createFilm(film));
         assertEquals("Описание фильма не может быть пустым или содержать больше 200 символов.", e.getMessage());
     }
 
@@ -102,7 +103,7 @@ class FilmControllerTest {
         film.setReleaseDate(date);
         film.setDuration(121);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryFilmStorage.createFilm(film));
         assertEquals("Дата создания не может быть раньше 12.12.1895 года или быть равна null.", e.getMessage());
     }
 
@@ -123,7 +124,7 @@ class FilmControllerTest {
         film.setReleaseDate(LocalDate.of(2000, 12, 22));
         film.setDuration(-121);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> filmController.createFilm(film));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryFilmStorage.createFilm(film));
         assertEquals("Продолжительность фильма должна быть положительным числом.", e.getMessage());
     }
 
@@ -135,7 +136,7 @@ class FilmControllerTest {
         existingFilm.setReleaseDate(LocalDate.of(2012, 4, 26));
         existingFilm.setDuration(114);
 
-        filmController.createFilm(existingFilm);
+        inMemoryFilmStorage.createFilm(existingFilm);
 
         updatedFilm = new Film();
         updatedFilm.setId(existingFilm.getId());
@@ -149,7 +150,7 @@ class FilmControllerTest {
         updatedFilm.setDuration(115);
         updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
 
-        Film result = filmController.updateFilm(updatedFilm);
+        Film result = inMemoryFilmStorage.updateFilm(updatedFilm);
 
         assertEquals("1+1", result.getName());
         assertEquals("Film about friendship with two not similar people", result.getDescription());
@@ -167,7 +168,7 @@ class FilmControllerTest {
         updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
         updatedFilm.setDuration(115);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> filmController.updateFilm(updatedFilm));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryFilmStorage.updateFilm(updatedFilm));
         assertEquals("Описание фильма не может быть пустым или содержать больше 200 символов.", e.getMessage());
     }
 
@@ -177,7 +178,7 @@ class FilmControllerTest {
         updatedFilm.setReleaseDate(date);
         updatedFilm.setDuration(115);
 
-        ValidationException e = assertThrows(ValidationException.class, () -> filmController.updateFilm(updatedFilm));
+        ValidationException e = assertThrows(ValidationException.class, () -> inMemoryFilmStorage.updateFilm(updatedFilm));
         assertEquals("Дата создания не может быть раньше 12.12.1895 года или быть равна null.", e.getMessage());
     }
 
@@ -199,13 +200,7 @@ class FilmControllerTest {
         updatedFilm.setReleaseDate(LocalDate.of(1995, 5, 15));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> filmController.updateFilm(updatedFilm));
+                () -> inMemoryFilmStorage.updateFilm(updatedFilm));
         assertEquals("Продолжительность фильма должна быть положительным числом.", exception.getMessage());
-    }
-
-    @Test
-    void shouldThrowValidationExceptionWhenFilmIsNull() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> filmController.createFilm(null));
-        assertEquals("Фильм не может быть null", exception.getMessage());
     }
 }

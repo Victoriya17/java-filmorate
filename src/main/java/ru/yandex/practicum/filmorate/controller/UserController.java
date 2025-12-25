@@ -1,117 +1,56 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-@Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserService userService;
 
     @GetMapping
     public Collection<User> findAllUsers() {
-        return users.values();
+        return userService.findAllUsers();
     }
 
     @PostMapping
     public User createUser(@Valid @RequestBody User user) {
-        if (user == null) {
-            throw new ValidationException("Пользователь не может быть null");
-        }
-
-        validateUniqueEmail(user.getEmail());
-        validateName(user);
-        validateBirthday(user.getBirthday());
-
-        user.setId(getNextId());
-        users.put(user.getId(), user);
-        return user;
-    }
-
-    private void validateUniqueEmail(String email) {
-        for (User user : users.values()) {
-            if (user.getEmail().equals(email)) {
-                throw new DuplicatedDataException("Этот имейл уже используется.");
-            }
-        }
-    }
-
-    private void validateName(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-    }
-
-    private void validateBirthday(LocalDate birthday) {
-        if (birthday.isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть равна нулю или быть в будущем.");
-        }
-    }
-
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+        return userService.createUser(user);
     }
 
     @PutMapping
     public User updateUser(@Valid @RequestBody User newUser) {
-        log.info("Начало обновления пользователя. ID: {}", newUser.getId());
-
-        if (newUser.getId() == null) {
-            throw new ValidationException("Id должен быть указан");
-        }
-
-        if (!users.containsKey(newUser.getId())) {
-            throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
-        }
-
-        User oldUser = users.get(newUser.getId());
-
-        if (newUser.getEmail() != null && !newUser.getEmail().isBlank() &&
-                !oldUser.getEmail().equals(newUser.getEmail())) {
-            validateUniqueEmail(newUser.getEmail());
-            oldUser.setEmail(newUser.getEmail());
-        }
-
-        validateLoginOnUpdate(newUser, oldUser);
-        updateNameIfProvided(newUser, oldUser);
-        validateBirthdayOnUpdate(newUser, oldUser);
-
-        return oldUser;
+        return userService.updateUser(newUser);
     }
 
-    private void validateLoginOnUpdate(User newUser, User oldUser) {
-        if (newUser.getLogin() != null && !newUser.getLogin().isBlank() &&
-                !oldUser.getLogin().equals(newUser.getLogin())) {
-            oldUser.setLogin(newUser.getLogin());
-        }
+    @GetMapping("/{id}")
+    public User findUserById(@PathVariable Long id) {
+        return userService.findUserById(id);
     }
 
-    private void updateNameIfProvided(User newUser, User oldUser) {
-        if (newUser.getName() != null && !newUser.getName().isBlank()) {
-            oldUser.setName(newUser.getName());
-        }
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.addFriend(id, friendId);
     }
 
-    private void validateBirthdayOnUpdate(User newUser, User oldUser) {
-        if (newUser.getBirthday() != null && !oldUser.getBirthday().equals(newUser.getBirthday())) {
-            validateBirthday(newUser.getBirthday());
-            oldUser.setBirthday(newUser.getBirthday());
-        }
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable Long id) {
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        return userService.getCommonFriends(id, otherId);
     }
 }
