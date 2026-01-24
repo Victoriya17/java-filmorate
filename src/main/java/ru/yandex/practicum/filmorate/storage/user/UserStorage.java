@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.user;
 
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -13,4 +13,10 @@ public interface UserStorage {
     User updateUser(User newUser);
 
     Optional<User> findUserById(Long id);
+
+    boolean tryAddFriendship(Long userId, Long friendId);
+
+    boolean removeFriendship(Long userId, Long friendId);
+
+    Optional<User> findUserByEmail(String email);
 }

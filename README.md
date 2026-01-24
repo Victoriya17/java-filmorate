@@ -16,7 +16,7 @@ Template repository for Filmorate project.
 
 - Объединение id фильма и id пользователя, чтобы пользователь мог поставить лайк фильму.
 
-### film_genre
+### film_genres
 
 - Присваивание фильму жанра.
 
@@ -31,10 +31,6 @@ Template repository for Filmorate project.
 ### friends
 
 - Список друзей пользователя, которые тоже добавили его в друзья.
-
-### status
-
-- Статус дружбы между пользователями.
 
 ### Примеры запросов для основных операций приложения Filmorate на языке SQL для Film:
 
@@ -109,7 +105,7 @@ Template repository for Filmorate project.
    ```
 8) Указать жанр фильма - addGenre(Long filmId, Long genreId):
    ```<SQL>
-   INSERT INTO film_genre (id, film_id, genre_id)
+   INSERT INTO film_genres (id, film_id, genre_id)
    VALUES ({id}, {filmId}, {genreId});
 
 ### Примеры запросов для основных операций приложения Filmorate на языке SQL для User:
@@ -142,8 +138,8 @@ Template repository for Filmorate project.
    ```
 5) Добавление пользователя в друзья - addFriend(Long id, Long friendId):
    ```<SQL>
-   INSERT INTO friends (status_id, user_id, friend_id)
-   VALUES ({status_id}, {userId}, {friend_id});
+   INSERT INTO friends (user_id, friend_id)
+   VALUES ({userId}, {friend_id});
    ```
 6) Удаление пользователя из друзей - removeFriend(Long id, Long friendId):
    ```<SQL>
@@ -155,7 +151,6 @@ Template repository for Filmorate project.
    ```<SQL>
    SELECT f.friend_id
    FROM friends AS f
-   JOIN status AS s ON f.status_id = s.status_id
    WHERE f.user_id = {id}
    AND s.name = 'accepted';
    ```
@@ -165,14 +160,10 @@ Template repository for Filmorate project.
    FROM user AS u1
    JOIN friends AS f ON u1.id = f.user_id
    JOIN user AS u2 ON f.friend_id = u2.id
-   JOIN status AS s ON f.status_id = s.status_id
    WHERE u1.id = {userId}
-      AND s.status = 'accepted'
       AND EXISTS (
           SELECT 1
           FROM friends AS of
-          JOIN status AS os ON of.status_id = os.status_id
           WHERE of.user_id = {otherId}
-             AND of.friend_id = u2.id
-             AND os.status = 'accepted');
+             AND of.friend_id = u2.id);
    ```
