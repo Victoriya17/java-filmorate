@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.ComponentScan;
-import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
@@ -16,7 +15,6 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @JdbcTest
 @AutoConfigureTestDatabase
@@ -86,27 +84,6 @@ public class UserDbStorageTest {
         boolean result = userStorage.tryAddFriendship(3L, 1L);
 
         assertThat(result).isFalse();
-    }
-
-    @Test
-    void testTryAddFriendshipUserNull() {
-        assertThrows(InternalServerException.class, () -> {
-            userStorage.tryAddFriendship(null, 1L);
-        });
-    }
-
-    @Test
-    void testTryAddFriendshipFriendNull() {
-        assertThrows(InternalServerException.class, () -> {
-            userStorage.tryAddFriendship(1L, null);
-        });
-    }
-
-    @Test
-    void testTryAddFriendshipError() {
-        assertThrows(InternalServerException.class, () -> {
-            userStorage.tryAddFriendship(999L, 999L);
-        });
     }
 
     @Test

@@ -19,4 +19,8 @@ public interface UserStorage {
     boolean removeFriendship(Long userId, Long friendId);
 
     Optional<User> findUserByEmail(String email);
+
+    Collection<User> findCommonFriends(Long userId, Long otherUserId);
+
+   Collection<User> findFriendsByUserId(Long userId);
 }

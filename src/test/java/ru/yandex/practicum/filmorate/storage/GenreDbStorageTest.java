@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ComponentScan("ru.yandex.practicum.filmorate")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class GenreStorageTest {
+public class GenreDbStorageTest {
     GenreDbStorage genreStorage;
 
     @Test

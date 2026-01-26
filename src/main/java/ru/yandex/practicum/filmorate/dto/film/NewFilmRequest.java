@@ -6,9 +6,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Set;
 
 @Data
 public class NewFilmRequest {
@@ -22,7 +20,6 @@ public class NewFilmRequest {
     private LocalDate releaseDate;
     @Positive(message = "Длительность должна быть положительной")
     private Integer duration;
-    private Set<Long> likes = new HashSet<>();
     private LinkedHashSet<Genre> genres = new LinkedHashSet<>();
     private Mpa mpa;
 }

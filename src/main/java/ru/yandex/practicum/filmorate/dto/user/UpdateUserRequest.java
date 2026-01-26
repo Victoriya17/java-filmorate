@@ -8,15 +8,11 @@ import java.time.LocalDate;
 @Data
 public class UpdateUserRequest {
     @NotNull
-    Long id;
-    @NotBlank
-    @Email
-    String email;
-    @NotBlank
-    String login;
-    String name;
-    @Past
-    LocalDate birthday;
+    private Long id;
+    private String email;
+    private String login;
+    private String name;
+    private LocalDate birthday;
 
     public boolean hasName() {
         return ! (name == null || name.isBlank());

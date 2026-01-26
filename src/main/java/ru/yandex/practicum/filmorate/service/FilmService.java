@@ -42,10 +42,35 @@ public class FilmService {
 
     public Collection<FilmDto> findAllFilms() {
         log.debug("Получение списка фильмов");
-        return filmStorage.findAllFilms()
-                .stream()
-                .map(FilmMapper::mapToFilmDto)
+        Collection<Film> films = filmStorage.findAllFilms();
+
+        if (films.isEmpty()) {
+            log.info("Не найдено ни одного фильма");
+            return Collections.emptyList();
+        }
+
+        List<Long> filmIds = films.stream()
+                .map(Film::getId)
                 .collect(Collectors.toList());
+
+        Map<Long, Set<Genre>> filmGenresMap = genreStorage.findGenresByFilmIds(filmIds);
+
+        List<FilmDto> filmDtos = films.stream()
+                .map(film -> {
+                    FilmDto dto = FilmMapper.mapToFilmDto(film);
+
+                    Set<Genre> genres = filmGenresMap.getOrDefault(
+                            film.getId(),
+                            Collections.emptySet()
+                    );
+                    dto.setGenres(new LinkedHashSet<>(genres));
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        log.info("Возвращено {} фильмов", filmDtos.size());
+        return filmDtos;
     }
 
     public FilmDto createFilm(NewFilmRequest request) {
@@ -115,10 +140,7 @@ public class FilmService {
             return Collections.emptySet();
         }
 
-        Set<Long> existingGenreIds = genreIds.stream()
-                .filter(genreId -> genreStorage.findGenreById(genreId).isPresent())
-                .collect(Collectors.toSet());
-
+        Set<Long> existingGenreIds = genreStorage.findExistingGenreIds(genreIds);
         Set<Long> missingGenreIds = new HashSet<>(genreIds);
         missingGenreIds.removeAll(existingGenreIds);
 
@@ -128,7 +150,7 @@ public class FilmService {
 
         if (existingGenreIds.isEmpty()) {
             throw new NotFoundException(
-                    ("Все указанные жанры не найдены в БД. IDs: " + missingGenreIds));
+                    "Все указанные жанры не найдены в БД. IDs: " + missingGenreIds);
         }
 
         return existingGenreIds;
@@ -160,7 +182,8 @@ public class FilmService {
         Film film = filmStorage.findFilmById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
         Optional<Set<Genre>> genres = genreStorage.findGenresByFilmId(film.getId());
-        film.setGenres((LinkedHashSet<Genre>) genres.orElse(Collections.emptySet()));
+        Set<Genre> genreSet = genres.orElse(Collections.emptySet());
+        film.setGenres(new LinkedHashSet<>(genreSet));
         return FilmMapper.mapToFilmDto(film);
     }
 
@@ -199,12 +222,17 @@ public class FilmService {
             return Collections.emptyList();
         }
 
+        List<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toList());
+
+        Map<Long, Set<Genre>> filmGenresMap = genreStorage.findGenresByFilmIds(filmIds);
+
         List<FilmDto> filmDtos = films.stream()
                 .map(film -> {
                     FilmDto dto = FilmMapper.mapToFilmDto(film);
-                    if (dto.getLikes() == null) {
-                        dto.setLikes(new HashSet<>());
-                    }
+                    Set<Genre> genres = filmGenresMap.getOrDefault(film.getId(), Collections.emptySet());
+                    dto.setGenres(new LinkedHashSet<>(genres));
                     return dto;
                 })
                 .collect(Collectors.toList());

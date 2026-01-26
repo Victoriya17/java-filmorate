@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dto.user.NewUserRequest;
 import ru.yandex.practicum.filmorate.dto.user.UpdateUserRequest;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserService {
-    UserStorage userStorage;
+    private final UserStorage userStorage;
 
     public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
@@ -83,21 +82,10 @@ public class UserService {
         userStorage.findUserById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
 
-        boolean isAdded = userStorage.tryAddFriendship(id, friendId);
-
-        try {
-        if (!isAdded) {
-            log.warn("Пользователь {} уже в друзьях у {}", friendId, id);
-            return;
-        }
+        userStorage.tryAddFriendship(id, friendId);
 
         user.getFriends().add(friendId);
         log.info("Пользователь {} добавил в друзья пользователя {}", id, friendId);
-
-        } catch (DataAccessException e) {
-            log.error("Ошибка при добавлении дружбы между {} и {}", id, friendId, e);
-            throw new InternalServerException("Не удалось добавить дружбу");
-        }
     }
 
     public void removeFriend(Long id, Long friendId) {
@@ -128,24 +116,16 @@ public class UserService {
         User user = userStorage.findUserById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + id + " не найден"));
 
-        log.debug("Получение списка друзей пользователя " + user.getName());
+        Collection<User> friends = userStorage.findFriendsByUserId(id);
 
-        Set<Long> friendsIds = user.getFriends();
-        if (friendsIds.isEmpty()) {
+        if (friends.isEmpty()) {
             log.trace("У пользователя " + user.getName() + " нет друзей");
             return new ArrayList<>();
         }
 
-        List<UserDto> friendsDtos = new ArrayList<>();
-        for (Long friendId : friendsIds) {
-            Optional<User> friendOpt = userStorage.findUserById(friendId);
-            if (friendOpt.isPresent()) {
-                UserDto friendDto = UserMapper.mapToUserDto(friendOpt.get());
-                friendsDtos.add(friendDto);
-            } else {
-                log.warn("Друг с ID {} не найден и будет пропущен", friendId);
-            }
-        }
+        List<UserDto> friendsDtos = friends.stream()
+                .map(UserMapper::mapToUserDto)
+                .collect(Collectors.toList());
 
         log.trace("Список друзей пользователя " + user.getName());
         return friendsDtos;
@@ -153,15 +133,14 @@ public class UserService {
 
     public Collection<UserDto> getCommonFriends(Long id, Long otherId) {
         log.debug("Получение списка общих друзей двух пользователей с ID={} и ID={}", id, otherId);
-        Collection<UserDto> userFriends = getFriends(id);
-        Collection<UserDto> otherUserFriends = getFriends(otherId);
-
-        Collection<UserDto> commonFriends = userFriends.stream()
-                .filter(otherUserFriends::contains)
+        Collection<User> commonUsers = userStorage.findCommonFriends(id, otherId);
+        Collection<UserDto> commonFriends = commonUsers.stream()
+                .map(UserMapper::mapToUserDto)
                 .collect(Collectors.toList());
 
         log.trace("Найдено {} общих друзей для пользователей ID={} и ID={}",
                 commonFriends.size(), id, otherId);
+
         return commonFriends;
     }
 }

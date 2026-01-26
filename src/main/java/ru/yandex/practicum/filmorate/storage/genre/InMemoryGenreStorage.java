@@ -40,4 +40,27 @@ public class InMemoryGenreStorage implements GenreStorage {
                 ? Optional.empty()
                 : Optional.of(genres);
     }
+
+    public Set<Long> findExistingGenreIds(Set<Long> genreIds) {
+        if (genreIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return genreIds.stream()
+                .filter(id -> genres.containsKey(id))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Map<Long, Set<Genre>> findGenresByFilmIds(Collection<Long> filmIds) {
+        return filmIds.stream()
+                .filter(filmGenres::containsKey)
+                .collect(Collectors.toMap(
+                        filmId -> filmId,
+                        filmId -> filmGenres.get(filmId).stream()
+                                .map(genres::get)
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toSet())
+                ));
+    }
 }

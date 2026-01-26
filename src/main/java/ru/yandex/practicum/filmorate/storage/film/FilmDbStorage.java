@@ -1,12 +1,9 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 import ru.yandex.practicum.filmorate.storage.mappers.FilmRowMapper;
@@ -78,9 +75,11 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     @Override
     public void addFilmGenres(Long filmId, Collection<Long> genreIds) {
+        List<Object[]> batchArgs = new ArrayList<>();
         for (Long genreId : genreIds) {
-            jdbc.update(ADD_FILM_GENRE, filmId, genreId);
+            batchArgs.add(new Object[]{filmId, genreId});
         }
+        jdbc.batchUpdate(ADD_FILM_GENRE, batchArgs);
     }
 
     @Override
@@ -91,24 +90,16 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     @Override
     public void addLike(Long id, Long userId) {
-        try {
-            jdbc.update(ADD_LIKES, id, userId);
-        } catch (DataIntegrityViolationException e) {
-            if (e.getMessage().contains("duplicate")) {
-                throw new DuplicatedDataException("Лайк уже поставлен");
-            } else {
-                throw new InternalServerException("Ошибка БД при добавлении лайка");
-            }
+        int countOfLikes = jdbc.update(ADD_LIKES, id, userId);
+
+        if (countOfLikes == 0) {
+            throw new DuplicatedDataException("Лайк уже поставлен");
         }
     }
 
     @Override
     public void removeLike(Long filmId, Long userId) {
-        try {
             jdbc.update(REMOVE_LIKE, filmId, userId);
-        } catch (DataAccessException e) {
-            throw new InternalServerException("Ошибка БД при удалении лайка");
-        }
     }
 
     @Override

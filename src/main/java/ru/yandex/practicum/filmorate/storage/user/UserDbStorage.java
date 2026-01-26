@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
 import jakarta.transaction.Transactional;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -12,6 +11,7 @@ import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 import ru.yandex.practicum.filmorate.storage.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.storage.mappers.UserWithFriendsRowMapper;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +28,10 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
     private static final String ADD_FRIEND = "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)";
     private static final String DELETE_FRIEND = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
     private static final String FIND_EMAIL = "SELECT * FROM users WHERE email = ?";
+    private static final String GET_COMMON_FRIENDS = "SELECT u.* FROM users u WHERE u.user_id IN ( SELECT f1.friend_id" +
+            " FROM friends f1 JOIN friends f2 ON f1.friend_id = f2.friend_id WHERE f1.user_id = ? AND f2.user_id = ? )";
+    private static final String FIND_FRIENDS_BY_USER_ID = "SELECT u2.* FROM friends f JOIN users u2 ON " +
+            "f.friend_id = u2.user_id WHERE f.user_id = ? ";
 
     RowMapper<User> userRowMapper;
     RowMapper<User> userWithFriendsRowMapper;
@@ -46,16 +50,13 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
     @Override
     public Optional<User> findUserById(Long userId) {
-        try {
-            List<User> users = jdbc.query(
-                    FIND_BY_ID_QUERY,
-                    new Object[]{userId},
-                    userWithFriendsRowMapper
-            );
-            return users.stream().findFirst();
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+        List<User> users = jdbc.query(
+                FIND_BY_ID_QUERY,
+                new Object[]{userId},
+                userWithFriendsRowMapper
+        );
+
+        return users.stream().findFirst();
     }
 
     @Override
@@ -86,25 +87,25 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
     @Transactional
     public boolean tryAddFriendship(Long userId, Long friendId) {
-        try {
-            Integer count = jdbc.queryForObject(
-                    CHECK_FRIENDS,
-                    Integer.class,
-                    userId, friendId);
+        Integer count = jdbc.queryForObject(
+                CHECK_FRIENDS,
+                Integer.class,
+                userId, friendId);
 
-            if (count != null && count > 0) {
-                return false;
-            }
+        if (count != null && count > 0) {
+            return false;
+        }
 
-            jdbc.update(
-                    ADD_FRIEND,
-                    userId,
-                    friendId);
+        int rowsAffected = jdbc.update(
+                ADD_FRIEND,
+                userId,
+                friendId);
 
-            return true;
-        } catch (DataAccessException e) {
+        if (rowsAffected != 1) {
             throw new InternalServerException("Не удалось добавить дружбу");
         }
+
+        return true;
     }
 
     public boolean removeFriendship(Long userId, Long friendId) {
@@ -112,21 +113,13 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
             return false;
         }
 
-        try {
-            int rows = jdbc.update(
-                    DELETE_FRIEND,
-                    userId,
-                    friendId
-            );
+        int rows = jdbc.update(
+                DELETE_FRIEND,
+                userId,
+                friendId
+        );
 
-            if (rows > 0) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch (DataAccessException e) {
-            throw new InternalServerException("Не удалось удалить дружбу из БД");
-        }
+        return rows > 0;
     }
 
     @Override
@@ -142,5 +135,23 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Collection<User> findCommonFriends(Long userId, Long friendId) {
+        return jdbc.query(
+                GET_COMMON_FRIENDS,
+                userRowMapper,
+                userId,
+                friendId);
+    }
+
+    @Override
+    public Collection<User> findFriendsByUserId(Long userId) {
+        return jdbc.query(
+                FIND_FRIENDS_BY_USER_ID,
+                userRowMapper,
+                userId
+        );
     }
 }

@@ -30,7 +30,6 @@ public class FilmMapper {
         film.setDescription(request.getDescription());
         film.setReleaseDate(request.getReleaseDate());
         film.setDuration(request.getDuration());
-        film.setLikes(request.getLikes());
         film.setGenres(request.getGenres());
         film.setMpa(request.getMpa());
 

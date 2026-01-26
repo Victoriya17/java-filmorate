@@ -13,13 +13,13 @@ import java.util.Set;
 @Data
 public class FilmDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    Long id;
-    String name;
-    String description;
+    private Long id;
+    private String name;
+    private String description;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    LocalDate releaseDate;
-    Long duration;
-    Set<Long> likes = new HashSet<>();
-    LinkedHashSet<Genre> genres = new LinkedHashSet<>();
-    MpaDto mpa;
+    private LocalDate releaseDate;
+    private Long duration;
+    private Set<Long> likes = new HashSet<>();
+    private LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+    private MpaDto mpa;
 }

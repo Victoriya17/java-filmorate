@@ -9,11 +9,11 @@ import java.util.Set;
 @Data
 public class UserDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    Long id;
-    String email;
-    String login;
-    String name;
+    private Long id;
+    private String email;
+    private String login;
+    private String name;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    LocalDate birthday;
-    Set<Long> friends;
+    private LocalDate birthday;
+    private Set<Long> friends;
 }

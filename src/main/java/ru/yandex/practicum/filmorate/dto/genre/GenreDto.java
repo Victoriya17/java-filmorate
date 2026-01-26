@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class GenreDto {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    Long id;
+    private Long id;
     @NotNull
-    String name;
+    private String name;
 }

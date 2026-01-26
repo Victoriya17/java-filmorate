@@ -5,10 +5,8 @@ import org.springframework.stereotype.Component;
 
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -76,5 +74,59 @@ public class InMemoryUserStorage implements UserStorage {
         return users.values().stream()
                 .filter(user -> user.getEmail().equals(email))
                 .findFirst();
+    }
+
+    public Collection<User> findCommonFriends(Long userId, Long otherUserId) {
+        log.debug("Поиск общих друзей для пользователей ID={} и ID={}", userId, otherUserId);
+
+        User user = users.get(userId);
+        User otherUser = users.get(otherUserId);
+
+        if (user == null || otherUser == null) {
+            log.warn("Один из пользователей не найден: ID={} или ID={}", userId, otherUserId);
+            return Collections.emptyList();
+        }
+
+        Set<Long> userFriends = new HashSet<>(user.getFriends());
+        Set<Long> otherUserFriends = new HashSet<>(otherUser.getFriends());
+
+        Set<Long> commonFriendIds = userFriends.stream()
+                .filter(otherUserFriends::contains)
+                .collect(Collectors.toSet());
+
+        Collection<User> commonFriends = commonFriendIds.stream()
+                .map(friendId -> users.get(friendId))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        log.trace("Найдено {} общих друзей для ID={} и ID={}",
+                commonFriends.size(), userId, otherUserId);
+
+        return commonFriends;
+    }
+
+    @Override
+    public Collection<User> findFriendsByUserId(Long userId) {
+        log.debug("Поиск друзей пользователя с ID={}", userId);
+
+        User user = users.get(userId);
+        if (user == null) {
+            log.warn("Пользователь с ID={} не найден", userId);
+            return Collections.emptyList();
+        }
+
+        Set<Long> friendIds = user.getFriends();
+        if (friendIds.isEmpty()) {
+            log.trace("У пользователя с ID={} нет друзей", userId);
+            return Collections.emptyList();
+        }
+
+        Collection<User> friends = friendIds.stream()
+                .map(users::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        log.trace("Для пользователя с ID={} найдено {} друзей", userId, friends.size());
+        return friends;
     }
 }
