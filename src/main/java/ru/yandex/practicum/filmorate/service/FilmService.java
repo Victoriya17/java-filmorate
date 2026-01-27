@@ -49,26 +49,7 @@ public class FilmService {
             return Collections.emptyList();
         }
 
-        List<Long> filmIds = films.stream()
-                .map(Film::getId)
-                .collect(Collectors.toList());
-
-        Map<Long, Set<Genre>> filmGenresMap = genreStorage.findGenresByFilmIds(filmIds);
-
-        List<FilmDto> filmDtos = films.stream()
-                .map(film -> {
-                    FilmDto dto = FilmMapper.mapToFilmDto(film);
-
-                    Set<Genre> genres = filmGenresMap.getOrDefault(
-                            film.getId(),
-                            Collections.emptySet()
-                    );
-                    dto.setGenres(new LinkedHashSet<>(genres));
-
-                    return dto;
-                })
-                .collect(Collectors.toList());
-
+        List<FilmDto> filmDtos = mapFilmsToDtosWithGenres(films);
         log.info("Возвращено {} фильмов", filmDtos.size());
         return filmDtos;
     }
@@ -222,22 +203,32 @@ public class FilmService {
             return Collections.emptyList();
         }
 
+        List<FilmDto> filmDtos = mapFilmsToDtosWithGenres(films);
+        log.info("Возвращено {} популярных фильмов (запрос: {})", filmDtos.size(), count);
+        return filmDtos;
+    }
+
+    private List<FilmDto> mapFilmsToDtosWithGenres(Collection<Film> films) {
+        if (films.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         List<Long> filmIds = films.stream()
                 .map(Film::getId)
                 .collect(Collectors.toList());
 
         Map<Long, Set<Genre>> filmGenresMap = genreStorage.findGenresByFilmIds(filmIds);
 
-        List<FilmDto> filmDtos = films.stream()
+        return films.stream()
                 .map(film -> {
                     FilmDto dto = FilmMapper.mapToFilmDto(film);
-                    Set<Genre> genres = filmGenresMap.getOrDefault(film.getId(), Collections.emptySet());
+                    Set<Genre> genres = filmGenresMap.getOrDefault(
+                            film.getId(),
+                            Collections.emptySet()
+                    );
                     dto.setGenres(new LinkedHashSet<>(genres));
                     return dto;
                 })
                 .collect(Collectors.toList());
-
-        log.info("Возвращено {} популярных фильмов (запрос: {})", filmDtos.size(), count);
-        return filmDtos;
     }
 }
