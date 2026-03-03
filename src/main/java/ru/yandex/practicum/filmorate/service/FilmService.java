@@ -231,4 +231,18 @@ public class FilmService {
                 })
                 .collect(Collectors.toList());
     }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        if (directorId <= 0) {
+            throw new IllegalArgumentException("ID режиссёра должно быть положительным числом");
+        }
+
+        if (sortBy.equals("year")) {
+            return filmStorage.getFilmsByDirectorIdSortedByYear(directorId);
+        } else if (sortBy.equals("likes")) {
+            return filmStorage.getFilmsByDirectorIdSortedByLikes(directorId);
+        } else {
+            throw new IllegalArgumentException("sortBy должен быть 'year' или 'likes'");
+        }
+    }
 }

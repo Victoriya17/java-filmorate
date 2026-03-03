@@ -4,16 +4,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
-import ru.yandex.practicum.filmorate.storage.mappers.FilmRowMapper;
+import ru.yandex.practicum.filmorate.storage.mappers.DirectorRowMapper;
 
 import java.util.*;
 
 @Repository
 public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
-    private static final String FIND_ALL_QUERY = "SELECT DISTINCT f.film_id, f.name, f.description, f.releaseDate, f.duration," +
-            " r.id AS rating_id, r.name AS rating_name FROM films f LEFT JOIN ratings r ON f.rating_id = r.id " +
+    private static final String FIND_ALL_QUERY = "SELECT DISTINCT f.film_id, f.name, f.description, f.releaseDate, " +
+            "f.duration, r.id AS rating_id, r.name AS rating_name FROM films f LEFT JOIN ratings r " +
+            "ON f.rating_id = r.id " +
             "LEFT JOIN film_genres AS fg ON f.film_id = fg.film_id LEFT JOIN genres AS g ON fg.genre_id = g.genre_id";
     private static final String FIND_BY_ID_QUERY = "SELECT f.film_id, f.name, f.description, f.releaseDate, f.duration," +
             " r.id AS rating_id, r.name AS rating_name FROM films f LEFT JOIN ratings r ON f.rating_id = r.id " +
@@ -30,6 +32,29 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             "INNER JOIN ratings AS r ON f.rating_id = r.id INNER JOIN ( SELECT l.film_id, COUNT(l.user_id) AS likes " +
             "FROM film_likes AS l GROUP BY l.film_id ORDER BY COUNT(l.user_id) DESC LIMIT ? ) AS liked_films " +
             "ON f.film_id = liked_films.film_id ORDER BY liked_films.likes DESC";
+    private static final String SAVE_DIRECTORS = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
+    private static final String UPDATE_DIRECTORS = "DELETE FROM film_directors WHERE film_id = ?";
+    private static final String FILM_DIRECTORS = "SELECT d.id, d.name FROM directors d JOIN film_directors fd ON " +
+            "d.id = fd.director_id WHERE fd.film_id = ?";
+    private static final String DIRECTOR_SORT_YEAR = "SELECT f.film_id, f.name, f.description, f.releaseDate, " +
+            "f.duration, f.rating_id, r.name AS rating_name, d.id AS director_id, d.name AS director_name " +
+            "FROM films f " +
+            "LEFT JOIN ratings r ON f.rating_id = r.id " +
+            "JOIN film_directors fd ON f.film_id = fd.film_id " +
+            "LEFT JOIN directors d ON fd.director_id = d.id " +
+            "WHERE fd.director_id = ? " +
+            "ORDER BY YEAR(f.releaseDate) ASC";
+    private static final String DIRECTOR_SORT_LIKES = "SELECT f.film_id, f.name, f.description, f.releaseDate, " +
+            "f.duration, f.rating_id, r.name AS rating_name, d.id AS director_id, d.name AS director_name, " +
+            "COUNT(l.user_id) AS like_count " +
+            "FROM film_directors AS fd " +
+            "LEFT JOIN films AS f ON fd.film_id = f.film_id " +
+            "LEFT JOIN film_likes AS l ON l.film_id = f.film_id " +
+            "JOIN directors AS d ON fd.director_id = d.id " +
+            "LEFT JOIN ratings AS r ON f.rating_id = r.id " +
+            "WHERE fd.director_id = ? " +
+            "GROUP BY f.film_id, d.id " +
+            "ORDER BY like_count DESC";
 
     public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
         super(jdbc, mapper, Film.class);
@@ -51,6 +76,8 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 film.getMpa().getId()
         );
         film.setId(id);
+        saveDirectors(film);
+
         return film;
     }
 
@@ -65,6 +92,9 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 film.getMpa().getId(),
                 film.getId()
         );
+
+        updateFilmDirectors(film);
+
         return film;
     }
 
@@ -107,6 +137,38 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть > 0");
         }
-        return jdbc.query(GET_POPULAR, new FilmRowMapper(), count);
+        return jdbc.query(GET_POPULAR, mapper, count);
+    }
+
+    private void saveDirectors(Film film) {
+        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+            List<Object[]> batchArgs = film.getDirectors().stream()
+                    .map(d -> new Object[]{film.getId(), d.getId()})
+                    .toList();
+            jdbc.batchUpdate(SAVE_DIRECTORS, batchArgs);
+        }
+    }
+
+    private void updateFilmDirectors(Film film) {
+        jdbc.update(UPDATE_DIRECTORS, film.getId());
+        saveDirectors(film);
+    }
+
+    private Set<Director> getDirectorsByFilmId(Long filmId) {
+        return new HashSet<>(jdbc.query(FILM_DIRECTORS, new DirectorRowMapper(), filmId));
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByYear(Long id) {
+        List<Film> films = jdbc.query(DIRECTOR_SORT_YEAR, mapper, id);
+        films.forEach(film -> film.setDirectors(getDirectorsByFilmId(film.getId())));
+        return films;
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByLikes(Long id) {
+        List<Film> films = jdbc.query(DIRECTOR_SORT_LIKES, mapper, id);
+        films.forEach(film -> film.setDirectors(getDirectorsByFilmId(film.getId())));
+        return films;
     }
 }
