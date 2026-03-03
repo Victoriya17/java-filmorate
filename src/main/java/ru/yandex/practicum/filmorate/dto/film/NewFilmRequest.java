@@ -2,11 +2,14 @@ package ru.yandex.practicum.filmorate.dto.film;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Data
 public class NewFilmRequest {
@@ -22,4 +25,5 @@ public class NewFilmRequest {
     private Integer duration;
     private LinkedHashSet<Genre> genres = new LinkedHashSet<>();
     private Mpa mpa;
+    private Set<Director> directors = new HashSet<>();
 }

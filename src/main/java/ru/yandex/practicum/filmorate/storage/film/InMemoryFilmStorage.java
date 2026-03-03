@@ -134,4 +134,14 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .limit(count)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByYear(Long id) {
+        return null;
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByLikes(Long id) {
+        return null;
+    }
 }
