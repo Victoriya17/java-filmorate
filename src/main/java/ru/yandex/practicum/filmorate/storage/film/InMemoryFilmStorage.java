@@ -21,6 +21,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     private final GenreStorage genreStorage;
     private final MpaStorage mpaStorage;
     private final Map<Long, Film> films = new HashMap<>();
+    Map<Long, HashSet<Long>> filmsDirectorsIds = new HashMap<>();
 
     public InMemoryFilmStorage(@Qualifier("inMemoryGenreStorage") GenreStorage genreStorage,
                                @Qualifier("inMemoryMpaStorage")MpaStorage mpaStorage) {
@@ -137,11 +138,23 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public List<Film> getFilmsByDirectorIdSortedByYear(Long id) {
-        return null;
+        return filmsDirectorsIds.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().contains(id))
+                .map(Map.Entry::getKey)
+                .map(films::get)
+                .sorted(Comparator.comparing(Film::getReleaseDate, Comparator.naturalOrder()))
+                .toList();
     }
 
     @Override
     public List<Film> getFilmsByDirectorIdSortedByLikes(Long id) {
-        return null;
+        return filmsDirectorsIds.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().contains(id))
+                .map(Map.Entry::getKey)
+                .map(films::get)
+                .sorted(Comparator.comparing((Film film) -> film.getLikes().size(), Comparator.reverseOrder()))
+                .toList();
     }
 }
