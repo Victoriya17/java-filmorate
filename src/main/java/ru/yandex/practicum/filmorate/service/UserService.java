@@ -12,7 +12,9 @@ import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
@@ -22,9 +24,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserService {
     private final UserStorage userStorage;
+    private final FilmStorage filmStorage;
 
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
+                       @Qualifier("filmDbStorage") FilmStorage filmStorage) {
         this.userStorage = userStorage;
+        this.filmStorage = filmStorage;
     }
 
     public Collection<UserDto> findAllUsers() {
@@ -147,5 +152,12 @@ public class UserService {
     public boolean deleteById(Long id) {
         log.debug("Удаляем пользователя с ID: {}", id);
         return userStorage.deleteById(id);
+    }
+
+    public List<Film> getRecommendations(Long userId) {
+        User user = userStorage.findUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        return filmStorage.getRecommendations(userId);
     }
 }
