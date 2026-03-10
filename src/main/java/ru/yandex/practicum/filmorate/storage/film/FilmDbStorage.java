@@ -63,6 +63,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             "WHERE fd.director_id = ? " +
             "GROUP BY f.film_id, d.id " +
             "ORDER BY like_count DESC";
+    private static final String DELETE_FILM = "DELETE FROM films WHERE film_id = ?";
 
     public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
         super(jdbc, mapper, Film.class);
@@ -178,5 +179,10 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         List<Film> films = jdbc.query(DIRECTOR_SORT_LIKES, mapper, id);
         films.forEach(film -> film.setDirectors(getDirectorsByFilmId(film.getId())));
         return films;
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        return delete(DELETE_FILM, id);
     }
 }

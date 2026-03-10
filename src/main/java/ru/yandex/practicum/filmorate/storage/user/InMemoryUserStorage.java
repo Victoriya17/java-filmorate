@@ -129,4 +129,9 @@ public class InMemoryUserStorage implements UserStorage {
         log.trace("Для пользователя с ID={} найдено {} друзей", userId, friends.size());
         return friends;
     }
+
+    public boolean deleteById(Long id) {
+        users.remove(id);
+        return Optional.ofNullable(users.get(id)).isPresent();
+    }
 }

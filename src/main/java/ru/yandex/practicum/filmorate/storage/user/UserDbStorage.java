@@ -32,6 +32,7 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
             " FROM friends f1 JOIN friends f2 ON f1.friend_id = f2.friend_id WHERE f1.user_id = ? AND f2.user_id = ? )";
     private static final String FIND_FRIENDS_BY_USER_ID = "SELECT u2.* FROM friends f JOIN users u2 ON " +
             "f.friend_id = u2.user_id WHERE f.user_id = ? ";
+    private static final String DELETE_USER = "DELETE FROM users WHERE user_id = ?";
 
     RowMapper<User> userRowMapper;
     RowMapper<User> userWithFriendsRowMapper;
@@ -153,5 +154,10 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
                 userRowMapper,
                 userId
         );
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        return delete(DELETE_USER, id);
     }
 }
