@@ -24,7 +24,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     Map<Long, HashSet<Long>> filmsDirectorsIds = new HashMap<>();
 
     public InMemoryFilmStorage(@Qualifier("inMemoryGenreStorage") GenreStorage genreStorage,
-                               @Qualifier("inMemoryMpaStorage")MpaStorage mpaStorage) {
+                               @Qualifier("inMemoryMpaStorage") MpaStorage mpaStorage) {
         this.genreStorage = genreStorage;
         this.mpaStorage = mpaStorage;
     }
@@ -158,5 +158,11 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .map(films::get)
                 .sorted(Comparator.comparing((Film film) -> film.getLikes().size(), Comparator.reverseOrder()))
                 .toList();
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        films.remove(id);
+        return Optional.ofNullable(films.get(id)).isPresent();
     }
 }

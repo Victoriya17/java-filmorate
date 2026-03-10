@@ -245,4 +245,9 @@ public class FilmService {
             throw new IllegalArgumentException("sortBy должен быть 'year' или 'likes'");
         }
     }
+
+    public boolean deleteById(Long id) {
+        log.debug("Удаляем фильм с ID: {}", id);
+        return filmStorage.deleteById(id);
+    }
 }

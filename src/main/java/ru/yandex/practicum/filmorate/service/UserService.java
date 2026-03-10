@@ -143,4 +143,9 @@ public class UserService {
 
         return commonFriends;
     }
+
+    public boolean deleteById(Long id) {
+        log.debug("Удаляем пользователя с ID: {}", id);
+        return userStorage.deleteById(id);
+    }
 }

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.film.FilmDto;
 import ru.yandex.practicum.filmorate.dto.film.NewFilmRequest;
@@ -63,5 +64,11 @@ public class FilmController {
     public List<Film> getFilmsByDirector(@PathVariable Long directorId,
                                          @RequestParam(name = "sortBy", defaultValue = "year") String sortBy) {
         return filmService.getFilmsByDirector(directorId, sortBy);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public boolean deleteFilmById(@PathVariable Long id) {
+        return filmService.deleteById(id);
     }
 }
