@@ -190,13 +190,13 @@ public class FilmService {
         log.info("Пользователь ID={} убрал лайк фильму ID={}", userId, filmId);
     }
 
-    public Collection<FilmDto> getPopularFilms(int count) {
+    public Collection<FilmDto> getPopularFilms(int count, Long genreId, Integer year) {
         log.debug("Получаем список из первых {} фильмов по количеству лайков", count);
         if (count <= 0) {
             throw new ValidationException("Количество фильмов должно быть больше 0");
         }
 
-        Collection<Film> films = filmStorage.getPopularFilms(count);
+        Collection<Film> films = filmStorage.getPopularFilms(count, genreId, year);
 
         if (films.isEmpty()) {
             log.warn("Не найдено популярных фильмов (запрос: {})", count);

@@ -16,10 +16,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -180,14 +177,17 @@ public class FilmDbStorageTest {
 
     @Test
     public void testGetPopularFilm() {
-        final int count = 4;
-        Collection<Film> films = filmStorage.getPopularFilms(count);
+        final int count = 1;
+        Long genreId = 3L;
+        Integer year = 2016;
+
+        Collection<Film> films = filmStorage.getPopularFilms(count, genreId, year);
 
         assertThat(films).isNotEmpty()
                 .hasSize(count)
                 .isInstanceOf(Collection.class)
-                .first()
-                .extracting(Film::getId)
-                .isEqualTo(2L);
+                .allMatch(film -> film.getReleaseDate().getYear() == 2016)
+                .allMatch(film -> film.getGenres().stream()
+                        .allMatch(genre -> Objects.equals(genre.getId(), genreId)));
     }
 }

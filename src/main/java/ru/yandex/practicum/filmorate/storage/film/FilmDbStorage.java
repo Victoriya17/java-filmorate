@@ -14,11 +14,13 @@ import java.util.*;
 @Repository
 public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     private static final String FIND_ALL_QUERY = "SELECT DISTINCT f.film_id, f.name, f.description, f.releaseDate, " +
-            "f.duration, r.id AS rating_id, r.name AS rating_name FROM films f LEFT JOIN ratings r " +
-            "ON f.rating_id = r.id " +
-            "LEFT JOIN film_genres AS fg ON f.film_id = fg.film_id LEFT JOIN genres AS g ON fg.genre_id = g.genre_id";
+            "f.duration, r.id AS rating_id, r.name AS rating_name " +
+            "FROM films f LEFT JOIN ratings r ON f.rating_id = r.id " +
+            "LEFT JOIN film_genres AS fg ON f.film_id = fg.film_id " +
+            "LEFT JOIN genres AS g ON fg.genre_id = g.genre_id";
     private static final String FIND_BY_ID_QUERY = "SELECT f.film_id, f.name, f.description, f.releaseDate, f.duration," +
-            " r.id AS rating_id, r.name AS rating_name FROM films f LEFT JOIN ratings r ON f.rating_id = r.id " +
+            " r.id AS rating_id, r.name AS rating_name " +
+            "FROM films f LEFT JOIN ratings r ON f.rating_id = r.id " +
             "WHERE f.film_id = ?";
     private static final String INSERT_QUERY = "INSERT INTO films(name, description, releaseDate, duration, rating_id)" +
             "VALUES (?, ?, ?, ?, ?)";
@@ -28,10 +30,16 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     private static final String FIND_LIKES = "SELECT user_id FROM film_likes WHERE film_id = ?";
     private static final String ADD_LIKES = "INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)";
     private static final String REMOVE_LIKE = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
-    private static final String GET_POPULAR = "SELECT f.*, r.name AS rating_name FROM films AS f " +
-            "INNER JOIN ratings AS r ON f.rating_id = r.id INNER JOIN ( SELECT l.film_id, COUNT(l.user_id) AS likes " +
-            "FROM film_likes AS l GROUP BY l.film_id ORDER BY COUNT(l.user_id) DESC LIMIT ? ) AS liked_films " +
-            "ON f.film_id = liked_films.film_id ORDER BY liked_films.likes DESC";
+    private static final String GET_POPULAR = "SELECT f.*, r.name AS rating_name " +
+            "FROM films AS f " +
+            "JOIN ratings AS r ON f.rating_id = r.id " +
+            "LEFT JOIN film_likes AS l ON f.film_id = l.film_id " +
+            "LEFT JOIN film_genres AS fg ON f.film_id = fg.film_id " +
+            "WHERE (? IS NULL OR fg.genre_id = ?) " +
+            "  AND (? IS NULL OR EXTRACT(YEAR FROM f.releaseDate) = ?) " +
+            "GROUP BY f.film_id, r.name " +
+            "ORDER BY COUNT(l.user_id) DESC " +
+            "LIMIT ?";
     private static final String SAVE_DIRECTORS = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
     private static final String UPDATE_DIRECTORS = "DELETE FROM film_directors WHERE film_id = ?";
     private static final String FILM_DIRECTORS = "SELECT d.id, d.name FROM directors d JOIN film_directors fd ON " +
@@ -133,11 +141,11 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     }
 
     @Override
-    public Collection<Film> getPopularFilms(int count) {
+    public Collection<Film> getPopularFilms(int count, Long genreId, Integer year) {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть > 0");
         }
-        return jdbc.query(GET_POPULAR, mapper, count);
+        return jdbc.query(GET_POPULAR, mapper, genreId, genreId, year, year, count);
     }
 
     private void saveDirectors(Film film) {
