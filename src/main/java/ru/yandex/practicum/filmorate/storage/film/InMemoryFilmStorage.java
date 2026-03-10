@@ -165,4 +165,37 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.remove(id);
         return Optional.ofNullable(films.get(id)).isPresent();
     }
+
+    @Override
+    public List<Film> getRecommendations(Long userId) {
+        // 1. Формируем карту всех лайков: Пользователь -> Набор ID фильмов
+        Map<Long, Set<Long>> userLikes = films.values().stream()
+                .flatMap(film -> film.getLikes().stream().map(uId -> Map.entry(uId, film.getId())))
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
+
+        Set<Long> targetLikes = userLikes.getOrDefault(userId, Collections.emptySet());
+        if (targetLikes.isEmpty()) return Collections.emptyList();
+
+        // 2. Находим самого похожего пользователя
+        Long similarUserId = findMostSimilarUser(userId, targetLikes, userLikes);
+        if (similarUserId == null) return Collections.emptyList();
+
+        // 3. Возвращаем фильмы, которые он лайкнул, а наш пользователь — нет
+        Set<Long> similarLikes = userLikes.get(similarUserId);
+        return films.values().stream()
+                .filter(f -> similarLikes.contains(f.getId()) && !targetLikes.contains(f.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private Long findMostSimilarUser(Long userId, Set<Long> targetLikes, Map<Long, Set<Long>> userLikes) {
+        return userLikes.entrySet().stream()
+                .filter(entry -> !entry.getKey().equals(userId))
+                .map(entry -> Map.entry(entry.getKey(),
+                        entry.getValue().stream().filter(targetLikes::contains).count()))
+                .filter(entry -> entry.getValue() > 0) // Должно быть хотя бы одно пересечение
+                .max(Comparator.comparingLong(Map.Entry::getValue))
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
 }
