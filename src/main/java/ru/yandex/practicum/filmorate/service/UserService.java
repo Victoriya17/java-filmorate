@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.exception.InternalServerException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -152,12 +151,5 @@ public class UserService {
     public boolean deleteById(Long id) {
         log.debug("Удаляем пользователя с ID: {}", id);
         return userStorage.deleteById(id);
-    }
-
-    public List<Film> getRecommendations(Long userId) {
-        User user = userStorage.findUserById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-
-        return filmStorage.getRecommendations(userId);
     }
 }
