@@ -198,4 +198,13 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .map(Map.Entry::getKey)
                 .orElse(null);
     }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return films.values().stream()
+                .filter(film -> film.getLikes().contains(userId))
+                .filter(film -> film.getLikes().contains(friendId))
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .collect(Collectors.toList());
+    }
 }

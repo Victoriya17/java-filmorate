@@ -79,6 +79,13 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             "ORDER BY COUNT(l.user_id) DESC " +
             "LIMIT 10;";
     private static final String LIKES_COUNT = "SELECT COUNT(*) FROM film_likes WHERE user_id = ?";
+    private static final String GET_COMMON_FILMS = "SELECT f.film_id, f.name, f.description, f.releaseDate, " +
+            "f.duration, f.rating_id, r.name AS rating_name " +
+            "FROM films f " +
+            "JOIN film_likes l1 ON f.film_id=l1.film_id JOIN film_likes l2 ON f.film_id=l2.film_id " +
+            "JOIN ratings r ON f.rating_id=r.id " +
+            "WHERE l1.user_id=? AND l2.user_id=? " +
+            "ORDER BY (SELECT COUNT(*) FROM film_likes fl WHERE fl.film_id=f.film_id) DESC";
 
     public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
         super(jdbc, mapper, Film.class);
@@ -209,5 +216,10 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         }
 
         return jdbc.query(GET_RECOMMENDATIONS, mapper, userId, userId, userId);
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return jdbc.query(GET_COMMON_FILMS, mapper, userId, friendId);
     }
 }
