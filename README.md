@@ -1,9 +1,9 @@
-# java-filmorate
+# Приложение Filmorate
 
-Template repository for Filmorate project.
+## Схема базы данных
+![Filmorate.png](src/main/resources/Filmorate.png)
 
-## Схема базы данных ![Filmorate.png](src/main/resources/Filmorate.png)
-
+## Описание сущностей
 ### film
 
 - Добавление фильма с указанием его id, названия, описания, даты выхода, продолжительности и рейтинга.
@@ -167,3 +167,13 @@ Template repository for Filmorate project.
           WHERE of.user_id = {otherId}
              AND of.friend_id = u2.id);
    ```
+   
+---
+
+### Технологический стек
+* Платформа и сборка: Java 21 (Amazon Corretto), Maven
+* Фреймворки: Spring Boot 3.2.4, Spring Web
+* Работа с данными и СУБД: Spring Boot Starter JDBC (JdbcTemplate), H2 Database (In-Memory)
+* Валидация и логирование: Jakarta Validation API, Zalando Logbook 3.7.2 (аудит HTTP-трафика)
+* Тестирование: Spring Boot Starter Test (JUnit 5, AssertJ)
+* Утилиты: Lombok 1.18.30
