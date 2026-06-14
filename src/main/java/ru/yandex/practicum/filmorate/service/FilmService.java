@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
@@ -190,13 +191,13 @@ public class FilmService {
         log.info("Пользователь ID={} убрал лайк фильму ID={}", userId, filmId);
     }
 
-    public Collection<FilmDto> getPopularFilms(int count) {
+    public Collection<FilmDto> getPopularFilms(int count, Long genreId, Integer year) {
         log.debug("Получаем список из первых {} фильмов по количеству лайков", count);
         if (count <= 0) {
             throw new ValidationException("Количество фильмов должно быть больше 0");
         }
 
-        Collection<Film> films = filmStorage.getPopularFilms(count);
+        Collection<Film> films = filmStorage.getPopularFilms(count, genreId, year);
 
         if (films.isEmpty()) {
             log.warn("Не найдено популярных фильмов (запрос: {})", count);
@@ -230,5 +231,47 @@ public class FilmService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public List<FilmDto> getFilmsByDirector(Long directorId, String sortBy) {
+        if (directorId <= 0) {
+            throw new IllegalArgumentException("ID режиссёра должно быть положительным числом");
+        }
+
+        Collection<Film> films;
+        if (sortBy.equals("year")) {
+            films = filmStorage.getFilmsByDirectorIdSortedByYear(directorId);
+        } else if (sortBy.equals("likes")) {
+            films = filmStorage.getFilmsByDirectorIdSortedByLikes(directorId);
+        } else {
+            throw new IllegalArgumentException("sortBy должен быть 'year' или 'likes'");
+        }
+
+        return mapFilmsToDtosWithGenres(films);
+    }
+
+    public boolean deleteById(Long id) {
+        log.debug("Удаляем фильм с ID: {}", id);
+        return filmStorage.deleteById(id);
+    }
+
+    public List<FilmDto> getRecommendations(Long userId) {
+        User user = userStorage.findUserById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        Collection<Film> recommendedFilms = filmStorage.getRecommendations(userId);
+
+        if (recommendedFilms.isEmpty()) {
+            log.info("Рекомендаций для пользователя ID={} не найдено", userId);
+            return Collections.emptyList();
+        }
+
+        return mapFilmsToDtosWithGenres(recommendedFilms);
+    }
+
+    public List<FilmDto> getCommonFilms(Long userId, Long friendId) {
+        Collection<Film> films = filmStorage.getCommonFilms(userId, friendId);
+
+        return mapFilmsToDtosWithGenres(films);
     }
 }

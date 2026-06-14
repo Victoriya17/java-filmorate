@@ -21,9 +21,10 @@ public class InMemoryFilmStorage implements FilmStorage {
     private final GenreStorage genreStorage;
     private final MpaStorage mpaStorage;
     private final Map<Long, Film> films = new HashMap<>();
+    Map<Long, HashSet<Long>> filmsDirectorsIds = new HashMap<>();
 
     public InMemoryFilmStorage(@Qualifier("inMemoryGenreStorage") GenreStorage genreStorage,
-                               @Qualifier("inMemoryMpaStorage")MpaStorage mpaStorage) {
+                               @Qualifier("inMemoryMpaStorage") MpaStorage mpaStorage) {
         this.genreStorage = genreStorage;
         this.mpaStorage = mpaStorage;
     }
@@ -123,15 +124,87 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Collection<Film> getPopularFilms(int count) {
+    public Collection<Film> getPopularFilms(int count, Long genreId, Integer year) {
         if (count <= 0) {
             throw new IllegalArgumentException("count должен быть > 0");
         }
 
         return findAllFilms()
                 .stream()
-                .sorted(Comparator.comparing((Film film) -> film.getLikes().size(), Comparator.reverseOrder()))
+                .filter(film -> film.getReleaseDate().getYear() == year)
+                .filter(film -> film.getGenres().stream().anyMatch(genre -> genre.getId().equals(genreId)))
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
                 .limit(count)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByYear(Long id) {
+        return filmsDirectorsIds.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().contains(id))
+                .map(Map.Entry::getKey)
+                .map(films::get)
+                .sorted(Comparator.comparing(Film::getReleaseDate, Comparator.naturalOrder()))
+                .toList();
+    }
+
+    @Override
+    public List<Film> getFilmsByDirectorIdSortedByLikes(Long id) {
+        return filmsDirectorsIds.entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().contains(id))
+                .map(Map.Entry::getKey)
+                .map(films::get)
+                .sorted(Comparator.comparing((Film film) -> film.getLikes().size(), Comparator.reverseOrder()))
+                .toList();
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        films.remove(id);
+        return Optional.ofNullable(films.get(id)).isPresent();
+    }
+
+    @Override
+    public List<Film> getRecommendations(Long userId) {
+        // 1. Формируем карту всех лайков: Пользователь -> Набор ID фильмов
+        Map<Long, Set<Long>> userLikes = films.values().stream()
+                .flatMap(film -> film.getLikes().stream().map(uId -> Map.entry(uId, film.getId())))
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
+
+        Set<Long> targetLikes = userLikes.getOrDefault(userId, Collections.emptySet());
+        if (targetLikes.isEmpty()) return Collections.emptyList();
+
+        // 2. Находим самого похожего пользователя
+        Long similarUserId = findMostSimilarUser(userId, targetLikes, userLikes);
+        if (similarUserId == null) return Collections.emptyList();
+
+        // 3. Возвращаем фильмы, которые он лайкнул, а наш пользователь — нет
+        Set<Long> similarLikes = userLikes.get(similarUserId);
+        return films.values().stream()
+                .filter(f -> similarLikes.contains(f.getId()) && !targetLikes.contains(f.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private Long findMostSimilarUser(Long userId, Set<Long> targetLikes, Map<Long, Set<Long>> userLikes) {
+        return userLikes.entrySet().stream()
+                .filter(entry -> !entry.getKey().equals(userId))
+                .map(entry -> Map.entry(entry.getKey(),
+                        entry.getValue().stream().filter(targetLikes::contains).count()))
+                .filter(entry -> entry.getValue() > 0) // Должно быть хотя бы одно пересечение
+                .max(Comparator.comparingLong(Map.Entry::getValue))
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    @Override
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        return films.values().stream()
+                .filter(film -> film.getLikes().contains(userId))
+                .filter(film -> film.getLikes().contains(friendId))
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
                 .collect(Collectors.toList());
     }
 }

@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.dto.film;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import ru.yandex.practicum.filmorate.dto.mpa.MpaDto;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.time.LocalDate;
@@ -22,4 +23,5 @@ public class FilmDto {
     private Set<Long> likes = new HashSet<>();
     private LinkedHashSet<Genre> genres = new LinkedHashSet<>();
     private MpaDto mpa;
+    private Set<Director> directors = new HashSet<>();
 }
